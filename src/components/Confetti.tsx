@@ -121,9 +121,9 @@ export function Confetti({ reducedMotion = false }: { reducedMotion?: boolean })
 
 const styles = StyleSheet.create({
   piece: {
-    position: 'absolute',
-    top: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'absolute',
+    top: 0,
   },
 });

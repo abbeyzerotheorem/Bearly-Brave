@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -37,17 +37,10 @@ export function ResponseScreen({
   const compact = height < 870;
   const contentWidth = Math.min(width - screenPadding * 2, 500);
   const isYes = answer === 'yes';
-  const displayName = profile.name || 'the nervous human';
   const [spokenLine, setSpokenLine] = useState<string | null>(null);
   const [lineType, setLineType] = useState<'question' | 'compliment' | null>(
     null
   );
-
-  const handleSpeakEnd = useCallback(() => {
-    setSpokenLine(null);
-    setLineType(null);
-  }, []);
-
   const defaultQuestion =
     profile.questions?.[0] || 'So… coffee sometime?';
   const defaultCompliment =
@@ -212,6 +205,7 @@ export function ResponseScreen({
               text={spokenLine}
               label="Say this out loud"
               disabled={false}
+              reducedMotion={reducedMotion}
             />
           )}
 
@@ -228,71 +222,190 @@ export function ResponseScreen({
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: screenPadding,
-    paddingTop: 4,
-    paddingBottom: 22,
-  },
-  inner: {
-    alignSelf: 'center',
-    flexGrow: 1,
-  },
-  heading: {
-    alignItems: 'center',
-    gap: 11,
-    marginTop: 10,
-  },
-  title: {
-    fontFamily: fonts.display,
-    fontSize: 43,
-    lineHeight: 47,
-    letterSpacing: -1.25,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  titleCompact: {
-    fontSize: 37,
-    lineHeight: 42,
-  },
-  lead: {
-    fontFamily: fonts.body,
-    fontSize: 14.5,
-    lineHeight: 22,
-    color: colors.inkSoft,
-    textAlign: 'center',
-    maxWidth: 310,
-  },
   bearStage: {
-    height: 218,
     alignItems: 'center',
+    height: 218,
     justifyContent: 'flex-end',
     marginTop: 2,
   },
   bearStageCompact: {
     height: 202,
   },
+  card: {
+    alignItems: 'center',
+    backgroundColor: colors.paper,
+    borderColor: 'rgba(165, 101, 69, 0.14)',
+    borderRadius: 20,
+    borderWidth: 1,
+    marginTop: 16,
+    padding: 18,
+  },
+  cardAnswer: {
+    color: colors.ink,
+    fontFamily: fonts.displaySoft,
+    fontSize: 20,
+    lineHeight: 26,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  cardLabel: {
+    color: colors.muted,
+    fontFamily: fonts.bodyBlack,
+    fontSize: 9.5,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+  },
+  content: {
+    flexGrow: 1,
+    paddingBottom: 22,
+    paddingHorizontal: screenPadding,
+    paddingTop: 4,
+  },
+  footer: {
+    alignItems: 'center',
+    gap: 2,
+    marginTop: 'auto',
+    paddingTop: 17,
+  },
+  footerNote: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    lineHeight: 17,
+    textAlign: 'center',
+  },
   halo: {
-    position: 'absolute',
-    bottom: 8,
-    width: 196,
-    height: 196,
-    borderRadius: 98,
     backgroundColor: 'rgba(246, 217, 146, 0.4)',
+    borderRadius: 98,
+    bottom: 8,
+    height: 196,
+    position: 'absolute',
+    width: 196,
+  },
+  heading: {
+    alignItems: 'center',
+    gap: 11,
+    marginTop: 10,
+  },
+  inner: {
+    alignSelf: 'center',
+    flexGrow: 1,
+  },
+  lead: {
+    color: colors.inkSoft,
+    fontFamily: fonts.body,
+    fontSize: 14.5,
+    lineHeight: 22,
+    maxWidth: 310,
+    textAlign: 'center',
+  },
+  lineChip: {
+    backgroundColor: 'rgba(255, 253, 248, 0.6)',
+    borderColor: 'rgba(124, 71, 47, 0.16)',
+    borderRadius: 100,
+    borderWidth: 1.3,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  lineChipActive: {
+    backgroundColor: colors.lavender,
+    borderColor: colors.lavender,
+  },
+  lineChipText: {
+    color: colors.inkSoft,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 12.5,
+    lineHeight: 17,
+  },
+  lineChipTextActive: {
+    color: colors.white,
+  },
+  lineChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+    maxWidth: 420,
+  },
+  lineLabel: {
+    alignSelf: 'center',
+    color: colors.inkSoft,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 10,
+  },
+  lineSection: {
+    alignItems: 'center',
+    marginTop: 18,
+    width: '100%',
+  },
+  pickerLabel: {
+    color: colors.inkSoft,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 10,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  pickerSection: {
+    alignItems: 'center',
+    marginTop: 'auto',
+    paddingTop: 18,
+  },
+  pill: {
+    backgroundColor: 'rgba(255, 253, 248, 0.7)',
+    borderColor: 'rgba(124, 71, 47, 0.16)',
+    borderRadius: 100,
+    borderWidth: 1.3,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  pillActive: {
+    backgroundColor: colors.lavender,
+    borderColor: colors.lavender,
+  },
+  pillText: {
+    color: colors.inkSoft,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13,
+  },
+  root: {
+    flex: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  spokenBanner: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: colors.lavenderSoft,
+    borderColor: colors.lavender,
+    borderRadius: 100,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 14,
+    maxWidth: 300,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  spokenText: {
+    color: colors.ink,
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13.5,
+    lineHeight: 20,
   },
   sunRay: {
+    backgroundColor: colors.butter,
+    borderRadius: 2,
+    height: 24,
+    opacity: 0.85,
     position: 'absolute',
     width: 2,
-    height: 24,
-    borderRadius: 2,
-    backgroundColor: colors.butter,
-    opacity: 0.85,
   },
   sunRayOne: {
     left: '24%',
@@ -300,140 +413,21 @@ const styles = StyleSheet.create({
     transform: [{ rotate: '-28deg' }],
   },
   sunRayTwo: {
+    height: 18,
     right: '25%',
     top: 20,
-    height: 18,
     transform: [{ rotate: '24deg' }],
   },
-  card: {
-    marginTop: 16,
-    backgroundColor: colors.paper,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(165, 101, 69, 0.14)',
-    padding: 18,
-    alignItems: 'center',
-  },
-  cardLabel: {
-    fontFamily: fonts.bodyBlack,
-    fontSize: 9.5,
-    letterSpacing: 1.6,
-    color: colors.muted,
-    textTransform: 'uppercase',
-  },
-  cardAnswer: {
-    marginTop: 6,
-    fontFamily: fonts.displaySoft,
-    fontSize: 20,
-    lineHeight: 26,
+  title: {
     color: colors.ink,
+    fontFamily: fonts.display,
+    fontSize: 43,
+    letterSpacing: -1.25,
+    lineHeight: 47,
     textAlign: 'center',
   },
-  spokenBanner: {
-    marginTop: 14,
-    backgroundColor: colors.lavenderSoft,
-    borderRadius: 100,
-    borderWidth: 1,
-    borderColor: colors.lavender,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    alignSelf: 'center',
-    maxWidth: 300,
-  },
-  spokenText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13.5,
-    lineHeight: 20,
-    color: colors.ink,
-  },
-  pickerSection: {
-    marginTop: 'auto',
-    paddingTop: 18,
-    alignItems: 'center',
-  },
-  pickerLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-    lineHeight: 20,
-    color: colors.inkSoft,
-    marginBottom: 10,
-  },
-  pickerRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  pill: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255, 253, 248, 0.7)',
-    borderWidth: 1.3,
-    borderColor: 'rgba(124, 71, 47, 0.16)',
-  },
-  pillActive: {
-    backgroundColor: colors.lavender,
-    borderColor: colors.lavender,
-  },
-  pillText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-    color: colors.inkSoft,
-  },
-  lineSection: {
-    marginTop: 18,
-    alignItems: 'center',
-    width: '100%',
-  },
-  lineLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.inkSoft,
-    marginBottom: 10,
-    alignSelf: 'center',
-  },
-  lineChips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-    maxWidth: 420,
-  },
-  lineChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255, 253, 248, 0.6)',
-    borderWidth: 1.3,
-    borderColor: 'rgba(124, 71, 47, 0.16)',
-  },
-  lineChipActive: {
-    backgroundColor: colors.lavender,
-    borderColor: colors.lavender,
-  },
-  lineChipText: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 12.5,
-    lineHeight: 17,
-    color: colors.inkSoft,
-  },
-  lineChipTextActive: {
-    color: colors.white,
-  },
-  footer: {
-    marginTop: 'auto',
-    paddingTop: 17,
-    alignItems: 'center',
-    gap: 2,
-  },
-  footerNote: {
-    fontFamily: fonts.body,
-    fontSize: 11.5,
-    lineHeight: 17,
-    color: colors.muted,
-    textAlign: 'center',
+  titleCompact: {
+    fontSize: 37,
+    lineHeight: 42,
   },
 });

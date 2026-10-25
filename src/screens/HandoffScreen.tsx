@@ -89,72 +89,72 @@ export function HandoffScreen({
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: screenPadding,
-    paddingTop: 4,
-    paddingBottom: 24,
-  },
-  inner: {
-    alignSelf: 'center',
-    flexGrow: 1,
-  },
-  heading: {
-    alignItems: 'center',
-    marginTop: 14,
-  },
-  title: {
-    fontFamily: fonts.display,
-    fontSize: 43,
-    lineHeight: 47,
-    letterSpacing: -1.25,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  titleCompact: {
-    fontSize: 37,
-    lineHeight: 42,
+  actions: {
+    gap: 8,
+    marginTop: 'auto',
+    paddingTop: 22,
   },
   bearStage: {
-    height: 218,
     alignItems: 'center',
+    height: 218,
     justifyContent: 'flex-end',
     marginTop: 2,
   },
   bearStageCompact: {
     height: 202,
   },
-  halo: {
-    position: 'absolute',
-    bottom: 8,
-    width: 196,
-    height: 196,
-    borderRadius: 98,
-    backgroundColor: 'rgba(246, 217, 146, 0.4)',
-  },
   body: {
-    marginTop: 14,
+    alignSelf: 'center',
+    color: colors.inkSoft,
     fontFamily: fonts.body,
     fontSize: 15,
     lineHeight: 23,
-    color: colors.inkSoft,
-    textAlign: 'center',
+    marginTop: 14,
     maxWidth: 340,
-    alignSelf: 'center',
+    textAlign: 'center',
   },
-  actions: {
-    marginTop: 'auto',
-    paddingTop: 22,
-    gap: 8,
+  content: {
+    flexGrow: 1,
+    paddingBottom: 24,
+    paddingHorizontal: screenPadding,
+    paddingTop: 4,
   },
   cue: {
+    color: colors.coral,
     fontFamily: fonts.bodySemiBold,
     fontSize: 13.5,
     lineHeight: 19,
-    color: colors.coral,
     textAlign: 'center',
+  },
+  halo: {
+    backgroundColor: 'rgba(246, 217, 146, 0.4)',
+    borderRadius: 98,
+    bottom: 8,
+    height: 196,
+    position: 'absolute',
+    width: 196,
+  },
+  heading: {
+    alignItems: 'center',
+    marginTop: 14,
+  },
+  inner: {
+    alignSelf: 'center',
+    flexGrow: 1,
+  },
+  scroll: {
+    flex: 1,
+  },
+  title: {
+    color: colors.ink,
+    fontFamily: fonts.display,
+    fontSize: 43,
+    letterSpacing: -1.25,
+    lineHeight: 47,
+    textAlign: 'center',
+  },
+  titleCompact: {
+    fontSize: 37,
+    lineHeight: 42,
   },
 });

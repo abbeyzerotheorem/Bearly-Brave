@@ -199,6 +199,7 @@ export default function App() {
                   goTo('setup');
                 }}
                 reducedMotion={reducedMotion}
+                hasBio={Boolean(profile.name.trim())}
               />
             ) : null}
             {screen === 'story' ? (
@@ -238,7 +239,6 @@ export default function App() {
                 profile={profile}
                 onSave={handleSaveProfile}
                 onBack={() => goTo('welcome')}
-                reducedMotion={reducedMotion}
               />
             ) : null}
           </ScreenTransition>

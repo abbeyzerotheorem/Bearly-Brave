@@ -8,7 +8,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,14 +20,12 @@ type SetupScreenProps = {
   profile: Profile;
   onSave: (profile: Profile) => void;
   onBack: () => void;
-  reducedMotion: boolean;
 };
 
 export function SetupScreen({
   profile,
   onSave,
   onBack,
-  reducedMotion,
 }: SetupScreenProps) {
   const [draft, setDraft] = useState<Profile>(profile);
   const [editingQuestions, setEditingQuestions] = useState<string[]>([]);
@@ -39,14 +36,17 @@ export function SetupScreen({
   const [selectedCompliment, setSelectedCompliment] = useState<string | null>(
     null
   );
-  const { width } = useWindowDimensions();
-  const contentWidth = Math.min(width - screenPadding * 2, 500);
 
+  // Sync local draft/selection from the profile prop whenever it changes
+  // (e.g. after saving). This is an intentional prop → local state sync.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft(profile);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedQuestion(
       profile.questions?.[0] || null
     );
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedCompliment(
       profile.compliments?.[0] || null
     );
@@ -198,7 +198,6 @@ export function SetupScreen({
                   setEditingQuestions(draft.questions);
                   setSelectedQuestion(null);
                 }}
-                reducedMotion={reducedMotion}
               />
               <View style={styles.addRow}>
                 <TextInput
@@ -252,7 +251,6 @@ export function SetupScreen({
                   setEditingCompliments(draft.compliments);
                   setSelectedCompliment(null);
                 }}
-                reducedMotion={reducedMotion}
               />
               <View style={styles.addRow}>
                 <TextInput
@@ -315,17 +313,177 @@ export function SetupScreen({
 }
 
 const styles = StyleSheet.create({
+  addButton: {
+    alignItems: 'center',
+    backgroundColor: colors.coral,
+    borderRadius: 24,
+    height: 48,
+    justifyContent: 'center',
+    width: 48,
+  },
+  addButtonText: {
+    color: colors.white,
+    fontFamily: fonts.bodyBold,
+    fontSize: 22,
+  },
+  addInput: {
+    backgroundColor: colors.cream,
+    borderColor: 'rgba(124, 71, 47, 0.16)',
+    borderRadius: 16,
+    borderWidth: 1.3,
+    color: colors.ink,
+    flex: 1,
+    fontFamily: fonts.body,
+    fontSize: 14.5,
+    minHeight: 48,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  addRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+    marginTop: 10,
+  },
+  backdrop: {
+    backgroundColor: 'rgba(44, 28, 21, 0.42)',
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  closeButton: {
+    alignItems: 'center',
+    backgroundColor: colors.paperDeep,
+    borderRadius: 19,
+    height: 38,
+    justifyContent: 'center',
+    width: 38,
+  },
+  closeGlyph: {
+    color: colors.inkSoft,
+    fontFamily: fonts.body,
+    fontSize: 24,
+    lineHeight: 26,
+    marginTop: -2,
+  },
+  content: {
+    paddingBottom: 20,
+    paddingHorizontal: screenPadding,
+    paddingTop: 18,
+  },
+  field: {
+    marginBottom: 16,
+  },
+  footer: {
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 16,
+  },
+  handle: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(124, 71, 47, 0.2)',
+    borderRadius: 2,
+    height: 4,
+    marginBottom: 2,
+    marginTop: 10,
+    width: 40,
+  },
+  input: {
+    backgroundColor: colors.cream,
+    borderColor: 'rgba(124, 71, 47, 0.18)',
+    borderRadius: 17,
+    borderWidth: 1.3,
+    color: colors.ink,
+    fontFamily: fonts.body,
+    fontSize: 16,
+    minHeight: 54,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  intro: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 24,
+    marginTop: 12,
+    maxWidth: 360,
+  },
+  label: {
+    color: colors.inkSoft,
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    letterSpacing: 0.25,
+    marginBottom: 7,
+    marginLeft: 4,
+  },
+  listHint: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    lineHeight: 17,
+    marginTop: 6,
+  },
   modalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
   },
-  backdrop: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: 'rgba(44, 28, 21, 0.42)',
+  privacy: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 11.5,
+    lineHeight: 17,
+  },
+  privacyDot: {
+    backgroundColor: colors.sage,
+    borderRadius: 3,
+    height: 5,
+    width: 5,
+  },
+  privacyRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 2,
+  },
+  removeChip: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 253, 248, 0.5)',
+    borderColor: 'rgba(124, 71, 47, 0.14)',
+    borderRadius: 100,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  removeChipLabel: {
+    color: colors.inkSoft,
+    fontFamily: fonts.body,
+    fontSize: 13,
+  },
+  removeChipText: {
+    color: colors.coralDeep,
+    fontFamily: fonts.bodyBold,
+    fontSize: 14,
+  },
+  safeSheet: {
+    flexGrow: 0,
+  },
+  section: {
+    marginBottom: 14,
+    marginTop: 24,
+  },
+  sectionHint: {
+    color: colors.muted,
+    fontFamily: fonts.body,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+    maxWidth: 360,
   },
   sheet: {
     backgroundColor: colors.paper,
@@ -333,181 +491,21 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 32,
     maxHeight: '96%',
   },
-  safeSheet: {
-    flexGrow: 0,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: 'rgba(124, 71, 47, 0.2)',
-    alignSelf: 'center',
-    marginTop: 10,
-    marginBottom: 2,
-  },
-  content: {
-    paddingHorizontal: screenPadding,
-    paddingTop: 18,
-    paddingBottom: 20,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: 12,
+  title: {
+    color: colors.ink,
+    fontFamily: fonts.display,
+    fontSize: 34,
+    letterSpacing: -0.7,
+    lineHeight: 38,
   },
   titleCopy: {
     flex: 1,
     gap: 12,
   },
-  title: {
-    fontFamily: fonts.display,
-    fontSize: 34,
-    lineHeight: 38,
-    letterSpacing: -0.7,
-    color: colors.ink,
-  },
-  closeButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.paperDeep,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  closeGlyph: {
-    fontFamily: fonts.body,
-    fontSize: 24,
-    lineHeight: 26,
-    color: colors.inkSoft,
-    marginTop: -2,
-  },
-  intro: {
-    marginTop: 12,
-    marginBottom: 24,
-    fontFamily: fonts.body,
-    fontSize: 14,
-    lineHeight: 21,
-    color: colors.muted,
-    maxWidth: 360,
-  },
-  field: {
-    marginBottom: 16,
-  },
-  label: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 12,
-    letterSpacing: 0.25,
-    color: colors.inkSoft,
-    marginBottom: 7,
-    marginLeft: 4,
-  },
-  input: {
-    minHeight: 54,
-    borderRadius: 17,
-    borderWidth: 1.3,
-    borderColor: 'rgba(124, 71, 47, 0.18)',
-    backgroundColor: colors.cream,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontFamily: fonts.body,
-    fontSize: 16,
-    color: colors.ink,
-  },
-  section: {
-    marginTop: 24,
-    marginBottom: 14,
-  },
-  sectionHint: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    lineHeight: 19,
-    color: colors.muted,
-    marginTop: 6,
-    maxWidth: 360,
-  },
-  addRow: {
+  titleRow: {
+    alignItems: 'flex-start',
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 10,
-    marginBottom: 12,
-  },
-  addInput: {
-    flex: 1,
-    minHeight: 48,
-    borderRadius: 16,
-    borderWidth: 1.3,
-    borderColor: 'rgba(124, 71, 47, 0.16)',
-    backgroundColor: colors.cream,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontFamily: fonts.body,
-    fontSize: 14.5,
-    color: colors.ink,
-  },
-  addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.coral,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addButtonText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 22,
-    color: colors.white,
-  },
-  listHint: {
-    marginTop: 6,
-    fontFamily: fonts.body,
-    fontSize: 11.5,
-    lineHeight: 17,
-    color: colors.muted,
-  },
-  removeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255, 253, 248, 0.5)',
-    borderWidth: 1,
-    borderColor: 'rgba(124, 71, 47, 0.14)',
-    marginBottom: 6,
-  },
-  removeChipText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 14,
-    color: colors.coralDeep,
-  },
-  removeChipLabel: {
-    fontFamily: fonts.body,
-    fontSize: 13,
-    color: colors.inkSoft,
-  },
-  footer: {
-    marginTop: 16,
-    alignItems: 'center',
-    gap: 4,
-  },
-  privacyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 2,
-  },
-  privacyDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.sage,
-  },
-  privacy: {
-    fontFamily: fonts.body,
-    fontSize: 11.5,
-    lineHeight: 17,
-    color: colors.muted,
+    gap: 12,
+    justifyContent: 'space-between',
   },
 });

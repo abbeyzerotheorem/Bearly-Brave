@@ -16,6 +16,7 @@ type SpeechButtonProps = {
   onSpeakEnd?: () => void;
   disabled?: boolean;
   label?: string;
+  reducedMotion?: boolean;
 };
 
 export function SpeechButton({
@@ -24,6 +25,7 @@ export function SpeechButton({
   onSpeakEnd,
   disabled = false,
   label = 'Speak this out loud',
+  reducedMotion = false,
 }: SpeechButtonProps) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const pulse = useRef(new Animated.Value(0)).current;
@@ -41,7 +43,7 @@ export function SpeechButton({
         rate: 0.95,
         volume: 1,
         onStart: () => {
-          if (!reducedMotionRef.current) {
+          if (!reducedMotion) {
             Animated.loop(
               Animated.sequence([
                 Animated.timing(pulse, {
@@ -81,9 +83,7 @@ export function SpeechButton({
       setIsSpeaking(false);
       onSpeakEnd?.();
     }
-  }, [text, disabled, isSpeaking, onSpeakStart, onSpeakEnd]);
-
-  const reducedMotionRef = useRef(false);
+  }, [text, disabled, isSpeaking, onSpeakStart, onSpeakEnd, reducedMotion]);
 
   return (
     <Pressable
@@ -125,51 +125,51 @@ export function SpeechButton({
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 60,
-    borderRadius: 100,
-    backgroundColor: colors.lavenderSoft,
-    borderWidth: 1.4,
-    borderColor: 'rgba(165, 101, 69, 0.18)',
-    paddingHorizontal: 20,
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: colors.lavenderSoft,
+    borderColor: 'rgba(165, 101, 69, 0.18)',
+    borderRadius: 100,
+    borderWidth: 1.4,
+    flexDirection: 'row',
     gap: 10,
+    justifyContent: 'center',
+    minHeight: 60,
+    paddingHorizontal: 20,
   },
   buttonDisabled: {
     backgroundColor: 'rgba(245, 240, 235, 0.6)',
     borderColor: 'rgba(165, 101, 69, 0.1)',
   },
-  buttonSpeaking: {
-    backgroundColor: colors.lavender,
-    borderColor: colors.lavender,
-  },
   buttonPressed: {
     opacity: 0.85,
     transform: [{ scale: 0.97 }],
   },
-  pulseRing: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    borderRadius: 100,
+  buttonSpeaking: {
     backgroundColor: colors.lavender,
-    opacity: 0.35,
+    borderColor: colors.lavender,
+  },
+  buttonText: {
+    color: colors.ink,
+    fontFamily: fonts.bodyBold,
+    fontSize: 15.5,
   },
   iconRow: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     gap: 8,
+  },
+  pulseRing: {
+    backgroundColor: colors.lavender,
+    borderRadius: 100,
+    bottom: 0,
+    left: 0,
+    opacity: 0.35,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   speakGlyph: {
     fontSize: 18,
     lineHeight: 20,
-  },
-  buttonText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 15.5,
-    color: colors.ink,
   },
 });

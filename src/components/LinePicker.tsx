@@ -16,7 +16,6 @@ type LinePickerProps = {
   value: string | null;
   onSelect: (line: string) => void;
   onAdd?: () => void;
-  reducedMotion: boolean;
 };
 
 export function LinePicker({
@@ -25,7 +24,6 @@ export function LinePicker({
   value,
   onSelect,
   onAdd,
-  reducedMotion,
 }: LinePickerProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(
     lines.indexOf(value || '')
@@ -103,82 +101,82 @@ export function LinePicker({
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
+  addChip: {
+    alignItems: 'center',
+    backgroundColor: colors.butterSoft,
+    borderColor: 'rgba(124, 71, 47, 0.16)',
+    borderRadius: 100,
+    borderWidth: 1.3,
+    justifyContent: 'center',
+    minWidth: 42,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
-  content: {
-    paddingHorizontal: screenPadding,
-    paddingTop: 10,
-    paddingBottom: 24,
-  },
-  inner: {
-    alignSelf: 'center',
-  },
-  title: {
-    fontFamily: fonts.display,
-    fontSize: 26,
-    lineHeight: 32,
-    letterSpacing: -0.6,
-    color: colors.ink,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  chipsScroll: {
-    paddingBottom: 4,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    gap: 10,
+  addChipText: {
+    color: colors.brownDeep,
+    fontFamily: fonts.bodyBold,
+    fontSize: 20,
   },
   chip: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 253, 248, 0.7)',
+    borderColor: 'rgba(124, 71, 47, 0.16)',
+    borderRadius: 100,
+    borderWidth: 1.3,
+    minWidth: 90,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255, 253, 248, 0.7)',
-    borderWidth: 1.3,
-    borderColor: 'rgba(124, 71, 47, 0.16)',
-    minWidth: 90,
-    alignItems: 'center',
   },
   chipActive: {
     backgroundColor: colors.lavender,
     borderColor: colors.lavender,
   },
   chipPressed: {
-    transform: [{ scale: 0.96 }],
     opacity: 0.9,
+    transform: [{ scale: 0.96 }],
   },
   chipText: {
+    color: colors.inkSoft,
     fontFamily: fonts.bodySemiBold,
     fontSize: 12.5,
     lineHeight: 18,
-    color: colors.inkSoft,
   },
   chipTextActive: {
     color: colors.white,
   },
-  addChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 100,
-    backgroundColor: colors.butterSoft,
-    borderWidth: 1.3,
-    borderColor: 'rgba(124, 71, 47, 0.16)',
-    minWidth: 42,
-    alignItems: 'center',
-    justifyContent: 'center',
+  chipsRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  addChipText: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 20,
-    color: colors.brownDeep,
+  chipsScroll: {
+    paddingBottom: 4,
+  },
+  content: {
+    paddingBottom: 24,
+    paddingHorizontal: screenPadding,
+    paddingTop: 10,
   },
   hint: {
-    marginTop: 14,
+    color: colors.muted,
     fontFamily: fonts.body,
     fontSize: 13,
     lineHeight: 20,
-    color: colors.muted,
+    marginTop: 14,
+    textAlign: 'center',
+  },
+  inner: {
+    alignSelf: 'center',
+  },
+  scroll: {
+    flex: 1,
+  },
+  title: {
+    color: colors.ink,
+    fontFamily: fonts.display,
+    fontSize: 26,
+    letterSpacing: -0.6,
+    lineHeight: 32,
+    marginBottom: 16,
     textAlign: 'center',
   },
 });
