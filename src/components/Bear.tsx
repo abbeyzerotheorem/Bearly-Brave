@@ -19,18 +19,73 @@ export type BearMood =
   | 'excited'
   | 'inLove'
   | 'nervous'
-  | 'speaking';
+  | 'speaking'
+  | 'smug'
+  | 'shocked'
+  | 'hurt'
+  | 'wink'
+  | 'dizzy';
 
 type BearProps = {
   size?: number;
   mood?: BearMood;
   onBoop?: () => void;
   reducedMotion?: boolean;
+  /**
+   * Flaps the mouth. Works with ANY mood, so the bear can talk while shy,
+   * smug or hurt. mood="speaking" is kept as an alias for old call sites.
+   */
   speaking?: boolean;
 };
 
 const CANVAS_WIDTH = 240;
 const CANVAS_HEIGHT = 280;
+
+type EyeKind = 'open' | 'happy' | 'flat' | 'wide' | 'cross' | 'wink';
+type BrowKind = 'none' | 'worried' | 'sad' | 'smug' | 'raised';
+type MouthKind = 'smile' | 'open' | 'smirk' | 'oh' | 'frown';
+
+type FaceSpec = {
+  eyes: EyeKind;
+  brows: BrowKind;
+  mouth: MouthKind;
+  sweat?: boolean;
+  tear?: boolean;
+  hearts?: boolean;
+};
+
+// One row per mood. Adding an expression means adding a row, not another
+// nested ternary in the render tree.
+const FACES: Record<BearMood, FaceSpec> = {
+  wave: { eyes: 'open', brows: 'none', mouth: 'smile' },
+  cheer: { eyes: 'happy', brows: 'none', mouth: 'open' },
+  excited: { eyes: 'happy', brows: 'none', mouth: 'open' },
+  gentle: { eyes: 'open', brows: 'worried', mouth: 'smile' },
+  shy: { eyes: 'open', brows: 'worried', mouth: 'smile' },
+  nervous: { eyes: 'open', brows: 'worried', mouth: 'smile', sweat: true },
+  inLove: { eyes: 'open', brows: 'none', mouth: 'smile', hearts: true },
+  speaking: { eyes: 'open', brows: 'none', mouth: 'smile' },
+  smug: { eyes: 'flat', brows: 'smug', mouth: 'smirk' },
+  shocked: { eyes: 'wide', brows: 'raised', mouth: 'oh' },
+  hurt: { eyes: 'open', brows: 'sad', mouth: 'frown', tear: true },
+  wink: { eyes: 'wink', brows: 'none', mouth: 'smirk' },
+  dizzy: { eyes: 'cross', brows: 'none', mouth: 'oh' },
+};
+
+// [left, right] pairs.
+const BROWS: Record<
+  BrowKind,
+  null | { top: [number, number]; rotate: [string, string] }
+> = {
+  none: null,
+  worried: { top: [41, 41], rotate: ['-8deg', '8deg'] },
+  sad: { top: [43, 43], rotate: ['-18deg', '18deg'] },
+  smug: { top: [35, 46], rotate: ['-14deg', '0deg'] },
+  raised: { top: [30, 30], rotate: ['0deg', '0deg'] },
+};
+
+const pulse = (value: Animated.Value, toValue: number, duration: number) =>
+  Animated.timing(value, { toValue, duration, useNativeDriver: true });
 
 export function Bear({
   size = 236,
@@ -45,8 +100,16 @@ export function Bear({
   const blink = useRef(new Animated.Value(1)).current;
   const earWiggle = useRef(new Animated.Value(0)).current;
   const poke = useRef(new Animated.Value(1)).current;
+  const jiggle = useRef(new Animated.Value(0)).current;
   const headTilt = useRef(new Animated.Value(0)).current;
   const mouth = useRef(new Animated.Value(0)).current;
+
+  const face = FACES[mood];
+  const talking = speaking || mood === 'speaking';
+  const lively = mood === 'cheer' || mood === 'excited';
+  const wobbles = mood === 'shy' || mood === 'nervous' || mood === 'dizzy';
+  const bothRestingArms =
+    mood === 'gentle' || mood === 'shy' || mood === 'inLove' || mood === 'hurt';
 
   useEffect(() => {
     if (reducedMotion) {
@@ -56,171 +119,100 @@ export function Bear({
       blink.setValue(1);
       earWiggle.setValue(0);
       headTilt.setValue(0);
-      mouth.setValue(0);
+      mouth.setValue(talking ? 0.6 : 0);
       return;
     }
 
-    const bobLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(bob, {
-          toValue: 1,
-          duration: mood === 'cheer' || mood === 'excited' ? 420 : 1700,
-          useNativeDriver: true,
-        }),
-        Animated.timing(bob, {
-          toValue: 0,
-          duration: mood === 'cheer' || mood === 'excited' ? 420 : 1700,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
+    const bobMs = lively ? 420 : mood === 'hurt' ? 2400 : 1700;
+    const breatheMs = mood === 'excited' ? 1200 : 2100;
+    const tiltMs = mood === 'dizzy' ? 650 : 3000;
 
-    const breatheLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(breathe, {
-          toValue: 1,
-          duration: mood === 'excited' ? 1200 : 2100,
-          useNativeDriver: true,
-        }),
-        Animated.timing(breathe, {
-          toValue: 0,
-          duration: mood === 'excited' ? 1200 : 2100,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
+    const loops: Animated.CompositeAnimation[] = [
+      Animated.loop(
+        Animated.sequence([pulse(bob, 1, bobMs), pulse(bob, 0, bobMs)]),
+      ),
+      Animated.loop(
+        Animated.sequence([
+          pulse(breathe, 1, breatheMs),
+          pulse(breathe, 0, breatheMs),
+        ]),
+      ),
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(2600),
+          pulse(blink, 0.08, 80),
+          Animated.delay(90),
+          pulse(blink, 1, 105),
+          Animated.delay(1800),
+        ]),
+      ),
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(1200),
+          pulse(earWiggle, 1, 180),
+          pulse(earWiggle, 0, 220),
+          Animated.delay(3200),
+        ]),
+      ),
+    ];
 
-    const waveLoop = Animated.loop(
-      Animated.sequence([
-        Animated.delay(mood === 'cheer' ? 300 : 1500),
-        Animated.timing(wave, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(wave, {
-          toValue: 0.08,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(wave, {
-          toValue: 1,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.timing(wave, {
-          toValue: 0,
-          duration: 250,
-          useNativeDriver: true,
-        }),
-        Animated.delay(mood === 'cheer' ? 500 : 2200),
-      ]),
-    );
+    // The arm swing drives the waving paw AND the pumping cheer arms. Before,
+    // this loop also ran for every other mood where nothing read it.
+    if (mood === 'wave' || lively) {
+      loops.push(
+        Animated.loop(
+          Animated.sequence([
+            Animated.delay(lively ? 300 : 1500),
+            pulse(wave, 1, 250),
+            pulse(wave, 0.08, 250),
+            pulse(wave, 1, 250),
+            pulse(wave, 0, 250),
+            Animated.delay(lively ? 500 : 2200),
+          ]),
+        ),
+      );
+    }
 
-    const blinkLoop = Animated.loop(
-      Animated.sequence([
-        Animated.delay(2600),
-        Animated.timing(blink, {
-          toValue: 0.08,
-          duration: 80,
-          useNativeDriver: true,
-        }),
-        Animated.delay(90),
-        Animated.timing(blink, {
-          toValue: 1,
-          duration: 105,
-          useNativeDriver: true,
-        }),
-        Animated.delay(1800),
-      ]),
-    );
+    if (wobbles) {
+      loops.push(
+        Animated.loop(
+          Animated.sequence([
+            pulse(headTilt, 1, tiltMs),
+            pulse(headTilt, 0, tiltMs),
+          ]),
+        ),
+      );
+    }
 
-    const earLoop = Animated.loop(
-      Animated.sequence([
-        Animated.delay(1200),
-        Animated.timing(earWiggle, {
-          toValue: 1,
-          duration: 180,
-          useNativeDriver: true,
-        }),
-        Animated.timing(earWiggle, {
-          toValue: 0,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.delay(3200),
-      ]),
-    );
+    if (talking) {
+      loops.push(
+        Animated.loop(
+          Animated.sequence([
+            pulse(mouth, 1, 220),
+            pulse(mouth, 0, 220),
+            pulse(mouth, 1, 220),
+            pulse(mouth, 0, 220),
+            Animated.delay(700),
+          ]),
+        ),
+      );
+    }
 
-    const tiltLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(headTilt, {
-          toValue: 1,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(headTilt, {
-          toValue: 0,
-          duration: 3000,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-
-    const speakLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(mouth, {
-          toValue: 1,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.timing(mouth, {
-          toValue: 0,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.timing(mouth, {
-          toValue: 1,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.timing(mouth, {
-          toValue: 0,
-          duration: 220,
-          useNativeDriver: true,
-        }),
-        Animated.delay(700),
-      ]),
-    );
-
-    bobLoop.start();
-    breatheLoop.start();
-    blinkLoop.start();
-    earLoop.start();
-    if (mood !== 'gentle' && mood !== 'shy') waveLoop.start();
-    if (mood === 'shy' || mood === 'nervous') tiltLoop.start();
-    if (speaking && mood === 'speaking') speakLoop.start();
-
-    return () => {
-      bobLoop.stop();
-      breatheLoop.stop();
-      blinkLoop.stop();
-      earLoop.stop();
-      waveLoop.stop();
-      tiltLoop.stop();
-      speakLoop.stop();
-    };
+    loops.forEach((loop) => loop.start());
+    return () => loops.forEach((loop) => loop.stop());
   }, [
     blink,
     bob,
     breathe,
     earWiggle,
     headTilt,
+    lively,
     mood,
     mouth,
     reducedMotion,
-    speaking,
+    talking,
     wave,
+    wobbles,
   ]);
 
   const handleBoop = () => {
@@ -230,28 +222,38 @@ export function Bear({
     if (reducedMotion) return;
 
     poke.stopAnimation();
-    Animated.sequence([
-      Animated.spring(poke, {
-        toValue: 1.045,
-        speed: 40,
-        bounciness: 4,
-        useNativeDriver: true,
-      }),
-      Animated.spring(poke, {
-        toValue: 1,
-        speed: 20,
-        bounciness: 8,
-        useNativeDriver: true,
-      }),
+    jiggle.stopAnimation();
+    Animated.parallel([
+      Animated.sequence([
+        Animated.spring(poke, {
+          toValue: 1.07,
+          speed: 40,
+          bounciness: 4,
+          useNativeDriver: true,
+        }),
+        Animated.spring(poke, {
+          toValue: 1,
+          speed: 20,
+          bounciness: 8,
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.sequence([
+        pulse(jiggle, 1, 70),
+        pulse(jiggle, -1, 110),
+        pulse(jiggle, 0.5, 90),
+        pulse(jiggle, 0, 90),
+      ]),
     ]).start();
   };
 
   const scale = size / CANVAS_WIDTH;
   const height = size * (CANVAS_HEIGHT / CANVAS_WIDTH);
 
+  const lift = mood === 'cheer' ? -14 : mood === 'hurt' ? -2 : -5;
   const bobY = bob.interpolate({
     inputRange: [0, 1],
-    outputRange: [1.5, mood === 'cheer' ? -14 : -5],
+    outputRange: [1.5, lift],
   });
   const tilt = bob.interpolate({
     inputRange: [0, 1],
@@ -265,30 +267,125 @@ export function Bear({
     inputRange: [0, 1],
     outputRange: ['4deg', '21deg'],
   });
+  const cheerLeftRotate = wave.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-12deg', '-27deg'],
+  });
+  const cheerRightRotate = wave.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['12deg', '27deg'],
+  });
   const earRotate = earWiggle.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '-7deg'],
   });
+  const wobbleAngle = mood === 'dizzy' ? 9 : 6;
   const headTiltRotate = headTilt.interpolate({
     inputRange: [0, 1],
-    outputRange: ['-6deg', '6deg'],
+    outputRange: [`-${wobbleAngle}deg`, `${wobbleAngle}deg`],
   });
-  const mouthOpen = mouth.interpolate({
+  // scaleY, not height: layout props can't run on the native driver and
+  // throw the moment the mouth starts animating.
+  const mouthScale = mouth.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 6],
+    outputRange: [0.6, 1],
   });
-  const mouthHeight = mouth.interpolate({
-    inputRange: [0, 1],
-    outputRange: [14, 20],
+  const jiggleRotate = jiggle.interpolate({
+    inputRange: [-1, 1],
+    outputRange: ['-4deg', '4deg'],
   });
 
-  const isCheer = mood === 'cheer';
-  const isGentle = mood === 'gentle';
-  const isShy = mood === 'shy';
-  const isExcited = mood === 'excited';
-  const isInLove = mood === 'inLove';
-  const isNervous = mood === 'nervous';
-  const isSpeaking = mood === 'speaking';
+  const brow = BROWS[face.brows];
+
+  const openEye = (side: 'left' | 'right', wide = false) => {
+    const x = wide ? 43 : 45;
+    return (
+      <Animated.View
+        key={side}
+        style={[
+          styles.eye,
+          wide && styles.eyeWide,
+          side === 'left' ? { left: x } : { right: x },
+          { transform: [{ scaleY: blink }] },
+        ]}
+      >
+        <View style={styles.eyeGlint} />
+      </Animated.View>
+    );
+  };
+
+  const renderEyes = () => {
+    switch (face.eyes) {
+      case 'happy':
+        return (
+          <>
+            <View style={[styles.happyEye, { left: 43 }]} />
+            <View style={[styles.happyEye, { right: 43 }]} />
+          </>
+        );
+      case 'flat':
+        return (
+          <>
+            <View style={[styles.flatEye, { left: 44 }]} />
+            <View style={[styles.flatEye, { right: 44 }]} />
+          </>
+        );
+      case 'wink':
+        return (
+          <>
+            <View style={[styles.happyEye, { left: 43 }]} />
+            {openEye('right')}
+          </>
+        );
+      case 'wide':
+        return (
+          <>
+            {openEye('left', true)}
+            {openEye('right', true)}
+          </>
+        );
+      case 'cross':
+        return (
+          <>
+            <Text style={[styles.crossEye, { left: 41 }]}>×</Text>
+            <Text style={[styles.crossEye, { right: 41 }]}>×</Text>
+          </>
+        );
+      default:
+        return (
+          <>
+            {openEye('left')}
+            {openEye('right')}
+          </>
+        );
+    }
+  };
+
+  const renderMouth = () => {
+    if (talking) {
+      return (
+        <Animated.View
+          style={[styles.speakingMouth, { transform: [{ scaleY: mouthScale }] }]}
+        />
+      );
+    }
+    switch (face.mouth) {
+      case 'open':
+        return (
+          <View style={styles.openMouth}>
+            <View style={styles.tongue} />
+          </View>
+        );
+      case 'smirk':
+        return <View style={styles.smirk} />;
+      case 'oh':
+        return <View style={styles.ohMouth} />;
+      case 'frown':
+        return <View style={styles.frown} />;
+      default:
+        return <View style={styles.smile} />;
+    }
+  };
 
   return (
     <Pressable
@@ -309,7 +406,7 @@ export function Bear({
         style={{
           width: size,
           height,
-          transform: [{ scale: poke }],
+          transform: [{ scale: poke }, { rotate: jiggleRotate }],
         }}
       >
         <Animated.View
@@ -321,7 +418,7 @@ export function Bear({
                 { scale },
                 { translateY: bobY },
                 { rotate: tilt },
-                ...(isShy || isNervous ? [{ rotate: headTiltRotate }] : []),
+                ...(wobbles ? [{ rotate: headTiltRotate }] : []),
                 { scale: breathScale },
               ],
             },
@@ -370,7 +467,7 @@ export function Bear({
             <View style={styles.belly} />
           </View>
 
-          {!isCheer && !isExcited ? (
+          {!lively ? (
             <>
               <View style={[styles.restingArm, styles.restingArmLeft]}>
                 <LinearGradient
@@ -378,7 +475,7 @@ export function Bear({
                   style={StyleSheet.absoluteFill}
                 />
               </View>
-              {isGentle || isShy || isInLove ? (
+              {bothRestingArms ? (
                 <View style={[styles.restingArm, styles.restingArmRight]}>
                   <LinearGradient
                     colors={['#B3704B', '#965437']}
@@ -389,18 +486,29 @@ export function Bear({
             </>
           ) : (
             <>
-              <View style={[styles.cheerArm, styles.cheerArmLeft]}>
+              <Animated.View
+                style={[
+                  styles.cheerArm,
+                  styles.cheerArmLeft,
+                  { transform: [{ rotate: cheerLeftRotate }] },
+                ]}
+              >
                 <View style={styles.cheerArmShape} />
                 <View style={styles.cheerPaw}>
                   <View style={styles.pawPad} />
                 </View>
-              </View>
-              <View style={styles.cheerArmRight}>
+              </Animated.View>
+              <Animated.View
+                style={[
+                  styles.cheerArmRight,
+                  { transform: [{ rotate: cheerRightRotate }] },
+                ]}
+              >
                 <View style={styles.cheerArmShape} />
                 <View style={styles.cheerPaw}>
                   <View style={styles.pawPad} />
                 </View>
-              </View>
+              </Animated.View>
             </>
           )}
 
@@ -414,43 +522,32 @@ export function Bear({
             <View style={styles.headHighlight} />
 
             <View style={styles.face}>
-              {isCheer || isExcited ? (
+              {renderEyes()}
+
+              {brow ? (
                 <>
-                  <View style={[styles.happyEye, { left: 43 }]} />
-                  <View style={[styles.happyEye, { right: 43 }]} />
-                </>
-              ) : (
-                <>
-                  <Animated.View
+                  <View
                     style={[
-                      styles.eye,
-                      { left: 45, transform: [{ scaleY: blink }] },
+                      styles.softBrow,
+                      {
+                        left: 42,
+                        top: brow.top[0],
+                        transform: [{ rotate: brow.rotate[0] }],
+                      },
                     ]}
-                  >
-                    <View style={styles.eyeGlint} />
-                  </Animated.View>
-                  <Animated.View
+                  />
+                  <View
                     style={[
-                      styles.eye,
-                      { right: 45, transform: [{ scaleY: blink }] },
+                      styles.softBrow,
+                      {
+                        right: 42,
+                        top: brow.top[1],
+                        transform: [{ rotate: brow.rotate[1] }],
+                      },
                     ]}
-                  >
-                    <View style={styles.eyeGlint} />
-                  </Animated.View>
-                  {(isShy || isGentle || isNervous) && (
-                    <>
-                      <View style={[styles.softBrow, { left: 42 }]} />
-                      <View
-                        style={[
-                          styles.softBrow,
-                          styles.softBrowRight,
-                          { right: 42 },
-                        ]}
-                      />
-                    </>
-                  )}
+                  />
                 </>
-              )}
+              ) : null}
 
               <View style={[styles.blush, { left: 19 }]} />
               <View style={[styles.blush, { right: 19 }]} />
@@ -468,27 +565,17 @@ export function Bear({
                 <View style={styles.noseGlint} />
               </View>
 
-              {isCheer || isExcited ? (
-                <View style={styles.openMouth}>
-                  <View style={styles.tongue} />
-                </View>
-              ) : isSpeaking ? (
-                <Animated.View
-                  style={[
-                    styles.speakingMouth,
-                    { height: mouthHeight },
-                  ]}
-                />
-              ) : (
-                <View style={styles.smile} />
-              )}
+              {renderMouth()}
 
-              {isInLove && (
+              {face.sweat ? <View style={styles.sweat} /> : null}
+              {face.tear ? <View style={styles.tear} /> : null}
+
+              {face.hearts ? (
                 <View style={styles.loveEyes}>
                   <Text style={styles.loveEyeText}>♥</Text>
                   <Text style={styles.loveEyeText}>♥</Text>
                 </View>
-              )}
+              ) : null}
             </View>
           </View>
 
@@ -517,7 +604,7 @@ export function Bear({
             </Animated.View>
           ) : null}
 
-          {isGentle || isInLove ? (
+          {mood === 'gentle' || mood === 'inLove' ? (
             <View style={styles.heldHeart}>
               <Text style={styles.heldHeartText}>♥</Text>
             </View>
@@ -758,9 +845,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(75, 42, 30, 0.52)',
     transform: [{ rotate: '-8deg' }],
   },
-  softBrowRight: {
-    transform: [{ rotate: '8deg' }],
-  },
   blush: {
     position: 'absolute',
     top: 98,
@@ -837,6 +921,8 @@ const styles = StyleSheet.create({
     top: 112,
     alignSelf: 'center',
     width: 30,
+    height: 20,
+    transformOrigin: '50% 0%',
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
     backgroundColor: '#4B2B1E',
@@ -927,5 +1013,80 @@ const styles = StyleSheet.create({
     fontSize: 20,
     lineHeight: 22,
     color: colors.coral,
+  },
+  flatEye: {
+    position: 'absolute',
+    top: 64,
+    width: 20,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#342016',
+  },
+  eyeWide: {
+    top: 50,
+    width: 20,
+    height: 30,
+    borderRadius: 12,
+  },
+  crossEye: {
+    position: 'absolute',
+    top: 49,
+    fontSize: 30,
+    lineHeight: 34,
+    color: '#342016',
+    includeFontPadding: false,
+  },
+  smirk: {
+    position: 'absolute',
+    top: 113,
+    alignSelf: 'center',
+    width: 26,
+    height: 13,
+    borderBottomWidth: 3,
+    borderRightWidth: 2.5,
+    borderBottomRightRadius: 16,
+    borderColor: '#5D3626',
+    transform: [{ translateX: 5 }, { rotate: '-8deg' }],
+  },
+  ohMouth: {
+    position: 'absolute',
+    top: 112,
+    alignSelf: 'center',
+    width: 17,
+    height: 21,
+    borderRadius: 10,
+    backgroundColor: '#4B2B1E',
+  },
+  frown: {
+    position: 'absolute',
+    top: 117,
+    alignSelf: 'center',
+    width: 26,
+    height: 12,
+    borderTopWidth: 3,
+    borderLeftWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderColor: '#5D3626',
+  },
+  sweat: {
+    position: 'absolute',
+    top: 22,
+    right: 24,
+    width: 11,
+    height: 15,
+    borderRadius: 8,
+    backgroundColor: '#9AD1F2',
+    transform: [{ rotate: '-8deg' }],
+  },
+  tear: {
+    position: 'absolute',
+    top: 79,
+    left: 41,
+    width: 9,
+    height: 13,
+    borderRadius: 6,
+    backgroundColor: '#9AD1F2',
   },
 });

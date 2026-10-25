@@ -8,18 +8,25 @@ import {
 } from 'react-native';
 import { colors, fonts, screenPadding } from '../theme';
 import { Bear } from '../components/Bear';
-import { BrandBar, Eyebrow, PrimaryButton } from '../components/ui';
+import { BrandBar, PrimaryButton } from '../components/ui';
+import { tapHaptic } from '../haptics';
 
 type HandoffScreenProps = {
+  /** The owner's name. */
   name: string;
-  answer: 'yes' | 'no';
+  /**
+   * Kept so the parent still compiles. This screen deliberately does NOT
+   * show it: both people can see the phone, and she should decide who learns
+   * her answer first. The owner's next screen does the reveal.
+   */
+  answer?: 'yes' | 'no';
+  /** Fires when the OWNER taps "I’ve got my phone back". */
   onGiveBack: () => void;
   reducedMotion: boolean;
 };
 
 export function HandoffScreen({
   name,
-  answer,
   onGiveBack,
   reducedMotion,
 }: HandoffScreenProps) {
@@ -27,7 +34,11 @@ export function HandoffScreen({
   const compact = height < 870;
   const contentWidth = Math.min(width - screenPadding * 2, 500);
   const displayName = name || 'the nervous human';
-  const isYes = answer === 'yes';
+
+  const handleBack = () => {
+    tapHaptic();
+    onGiveBack();
+  };
 
   return (
     <ScrollView
@@ -36,17 +47,15 @@ export function HandoffScreen({
       showsVerticalScrollIndicator={false}
     >
       <View style={[styles.inner, { width: contentWidth }]}>
+        {/* No settings or back button here: she's holding the phone. */}
         <BrandBar />
 
         <View style={styles.heading}>
-          <Eyebrow center>{isYes ? 'SHE SAID YES' : 'ALL GOOD'}</Eyebrow>
           <Text
             accessibilityRole="header"
             style={[styles.title, compact && styles.titleCompact]}
           >
-            {isYes
-              ? 'You just made his week.'
-              : "That's completely okay."}
+            Hand it back.
           </Text>
         </View>
 
@@ -54,30 +63,26 @@ export function HandoffScreen({
           <View style={styles.halo} />
           <Bear
             size={compact ? 172 : 198}
-            mood={isYes ? 'cheer' : 'gentle'}
+            mood="wave"
             reducedMotion={reducedMotion}
           />
         </View>
 
         <Text style={styles.body}>
-          {isYes
-            ? 'Hand the phone back to ' + displayName + ' and watch him try to play it cool.'
-            : 'Hand the phone back to ' + displayName + ' with a smile — he’ll take it from here.'}
+          Thanks for answering. Pass the phone back to {displayName}. I’ll
+          pretend I wasn’t listening.
         </Text>
 
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>
-            HER ANSWER
+        <View style={styles.actions}>
+          <Text style={styles.cue}>
+            Tap once the phone is back where it belongs.
           </Text>
-          <Text style={styles.cardAnswer}>
-            {isYes ? 'Yes, I’d like that.' : 'Not right now.'}
-          </Text>
+          <PrimaryButton
+            label="I’ve got my phone back"
+            onPress={handleBack}
+            accessibilityHint="Shows the bear’s message for the phone’s owner. This one is for the owner to tap."
+          />
         </View>
-
-        <PrimaryButton
-          label="Give the phone back"
-          onPress={onGiveBack}
-        />
       </View>
     </ScrollView>
   );
@@ -99,8 +104,7 @@ const styles = StyleSheet.create({
   },
   heading: {
     alignItems: 'center',
-    gap: 11,
-    marginTop: 10,
+    marginTop: 14,
   },
   title: {
     fontFamily: fonts.display,
@@ -141,28 +145,16 @@ const styles = StyleSheet.create({
     maxWidth: 340,
     alignSelf: 'center',
   },
-  card: {
-    marginTop: 20,
-    backgroundColor: colors.paper,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(165, 101, 69, 0.14)',
-    padding: 18,
-    alignItems: 'center',
+  actions: {
+    marginTop: 'auto',
+    paddingTop: 22,
+    gap: 8,
   },
-  cardLabel: {
-    fontFamily: fonts.bodyBlack,
-    fontSize: 9.5,
-    letterSpacing: 1.6,
-    color: colors.muted,
-    textTransform: 'uppercase',
-  },
-  cardAnswer: {
-    marginTop: 6,
-    fontFamily: fonts.displaySoft,
-    fontSize: 20,
-    lineHeight: 26,
-    color: colors.ink,
+  cue: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: colors.coral,
     textAlign: 'center',
   },
 });

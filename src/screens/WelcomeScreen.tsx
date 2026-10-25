@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -10,10 +10,14 @@ import {
 import { colors, fonts, screenPadding } from '../theme';
 import { Bear } from '../components/Bear';
 import { FloatingHearts } from '../components/FloatingHearts';
-import { BrandBar, Eyebrow, PawMark, PrimaryButton } from '../components/ui';
+import { BrandBar, PawMark, PrimaryButton } from '../components/ui';
 import { boopHaptic, tapHaptic } from '../haptics';
 
-type Role = 'owner' | 'guest';
+export type Role = 'owner' | 'guest';
+
+type Phase = 'ready' | 'handoff';
+
+const BOOP_HINT = 'psst… boop the bear';
 
 const BOOPS = [
   'eep! Okay, you’re fun.',
@@ -21,39 +25,90 @@ const BOOPS = [
   'My human is watching. Act natural.',
   'That tickles. Do it again.',
   'Right. Back to being professional.',
+  'Okay, you’re not stopping. I respect it.',
+  'Boop count: classified.',
+  'Fine. Now go bother my human.',
 ];
 
 export type WelcomeScreenProps = {
+  /**
+   * Fires when SHE taps "I’ve got the phone" on the handoff step.
+   * Always emits 'guest' now; the owner path no longer exists on this screen.
+   */
   onStart: (role: Role) => void;
   onSettings: () => void;
   reducedMotion: boolean;
+  /** Pass false when the settings bio is empty so the owner gets warned. */
+  hasBio?: boolean;
 };
 
 export function WelcomeScreen({
   onStart,
   onSettings,
   reducedMotion,
+  hasBio = true,
 }: WelcomeScreenProps) {
   const { height, width } = useWindowDimensions();
   const compact = height < 740;
   const contentWidth = Math.min(width - screenPadding * 2, 500);
-  const [boopCount, setBoopCount] = useState(0);
-  const [role, setRole] = useState<Role | null>(null);
 
-  const boop = () => {
+  const [phase, setPhase] = useState<Phase>('ready');
+  const [boopCount, setBoopCount] = useState(0);
+  const [excited, setExcited] = useState(false);
+  const [dizzy, setDizzy] = useState(false);
+  const streak = useRef(0);
+  const calmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (calmTimer.current) clearTimeout(calmTimer.current);
+    },
+    [],
+  );
+
+  // Counter + mood for every boop. No haptic in here: Bear already fires its
+  // own when tapped, so only the pill adds one (pillBoop). Otherwise the bear
+  // buzzes twice.
+  const registerBoop = useCallback(() => {
+    streak.current += 1;
     setBoopCount((count) => count + 1);
+    setExcited(true);
+    setDizzy(streak.current >= 6);
+    if (calmTimer.current) clearTimeout(calmTimer.current);
+    calmTimer.current = setTimeout(() => {
+      streak.current = 0;
+      setExcited(false);
+      setDizzy(false);
+    }, 1400);
+  }, []);
+
+  const pillBoop = () => {
+    boopHaptic();
+    registerBoop();
   };
 
-  const boopLabel =
-    boopCount === 0
-      ? 'psst… boop the bear'
+  const boopLabel = dizzy
+    ? 'Whoa. The room is spinning.'
+    : boopCount === 0
+      ? BOOP_HINT
       : BOOPS[(boopCount - 1) % BOOPS.length];
 
-  const handleStart = (r: Role) => {
+  const goHandoff = () => {
     tapHaptic();
-    setRole(r);
-    onStart(r);
+    setPhase('handoff');
   };
+
+  const goBack = () => {
+    tapHaptic();
+    setPhase('ready');
+  };
+
+  const begin = () => {
+    tapHaptic();
+    onStart('guest');
+  };
+
+  const isReady = phase === 'ready';
 
   return (
     <ScrollView
@@ -66,15 +121,18 @@ export function WelcomeScreen({
       bounces
     >
       <View style={[styles.inner, { width: contentWidth }]}>
-        <BrandBar onSettings={onSettings} />
+        {isReady ? (
+          <BrandBar onSettings={onSettings} />
+        ) : (
+          <View style={styles.barSpacer} />
+        )}
 
         <View style={styles.heading}>
-          <Eyebrow center>A VERY SMALL QUESTION</Eyebrow>
           <Text
             accessibilityRole="header"
             style={[styles.title, compact && styles.titleCompact]}
           >
-            Hi. I’m the bear.
+            {isReady ? 'Ready to begin?' : 'Hand the phone to her.'}
           </Text>
         </View>
 
@@ -84,71 +142,99 @@ export function WelcomeScreen({
           <FloatingHearts reducedMotion={reducedMotion} style={styles.hearts} />
           <Bear
             size={compact ? 198 : 232}
-            mood={role ? 'cheer' : 'wave'}
-            onBoop={boop}
+            mood={dizzy ? 'dizzy' : excited || !isReady ? 'cheer' : 'wave'}
+            onBoop={registerBoop}
             reducedMotion={reducedMotion}
           />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Boop the bear"
-            accessibilityLiveRegion="polite"
-            onPress={() => {
-              boopHaptic();
-              boop();
-            }}
-            style={({ pressed }) => [
-              styles.boopPill,
-              boopCount > 0 && styles.boopPillActive,
-              pressed && styles.boopPillPressed,
-            ]}
-          >
-            <PawMark size={13} color={colors.coral} />
-            <Text style={styles.boopText} numberOfLines={2}>
-              {boopLabel}
-            </Text>
-          </Pressable>
+          {isReady && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Boop the bear"
+              accessibilityLiveRegion="polite"
+              onPress={pillBoop}
+              style={({ pressed }) => [
+                styles.boopPill,
+                boopCount > 0 && styles.boopPillActive,
+                pressed && styles.boopPillPressed,
+              ]}
+            >
+              <PawMark size={13} color={colors.coral} />
+              <Text style={styles.boopText} numberOfLines={2}>
+                {boopLabel}
+              </Text>
+            </Pressable>
+          )}
         </View>
 
-        <Text style={styles.body}>
-          The nervous human holding this phone has something to ask you.
-          <Text style={styles.bodyEmphasis}>
-            {' '}
-            He’s currently pretending to be calm.
-          </Text>
-        </Text>
-
-        {role === null ? (
-          <View style={styles.rolePicker}>
-            <Text style={styles.rolePickerLabel}>
-              Who’s holding the phone?
-            </Text>
-            <View style={styles.roleButtons}>
-              <PrimaryButton
-                label="I’m the human asking"
-                onPress={() => handleStart('owner')}
-                accessibilityHint="Set up your details and what you want to say"
-              />
-              <PrimaryButton
-                label="I’m being asked out"
-                onPress={() => handleStart('guest')}
-                accessibilityHint="Read the question and tap your answer"
-              />
-            </View>
-          </View>
-        ) : (
-          <View style={styles.actions}>
-            <PrimaryButton
-              label="Okay, I’m curious"
-              onPress={() => handleStart(role)}
-              accessibilityHint="Continue to the next step"
-            />
-            <View style={styles.assurance}>
-              <View style={styles.assuranceDot} />
-              <Text style={styles.assuranceText}>
-                No talking required. No pressure included.
+        {isReady ? (
+          <>
+            <Text style={styles.body}>
+              Say yes and I’ll tell you exactly what to do with the phone.
+              <Text style={styles.bodyEmphasis}>
+                {' '}
+                Spoiler: it leaves your hands.
               </Text>
+            </Text>
+
+            {!hasBio && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Your bio is empty. Open settings to add it."
+                onPress={onSettings}
+                style={({ pressed }) => [
+                  styles.bioNudge,
+                  pressed && styles.linkPressed,
+                ]}
+              >
+                <Text style={styles.bioNudgeText}>
+                  Your bio is empty, so I’ll have nothing to say about you. Tap
+                  to fix it.
+                </Text>
+              </Pressable>
+            )}
+
+            <View style={styles.actions}>
+              <PrimaryButton
+                label="Yes, I’m ready"
+                onPress={goHandoff}
+                accessibilityHint="Next, you’ll be asked to hand the phone over"
+              />
             </View>
-          </View>
+          </>
+        ) : (
+          <>
+            <Text style={styles.body}>
+              I’ll introduce myself, then I’ll introduce you.
+              <Text style={styles.bodyEmphasis}>
+                {' '}
+                Stay quiet and look confident.
+              </Text>
+            </Text>
+
+            <View style={styles.actions}>
+              <Text style={styles.cue}>
+                Her turn. Tap once you’re holding the phone.
+              </Text>
+              <PrimaryButton
+                label="I’ve got the phone"
+                onPress={begin}
+                accessibilityHint="Starts the bear’s introduction. This one is for her to tap."
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Wait, not yet"
+                accessibilityHint="Go back to the previous step"
+                onPress={goBack}
+                hitSlop={8}
+                style={({ pressed }) => [
+                  styles.link,
+                  pressed && styles.linkPressed,
+                ]}
+              >
+                <Text style={styles.linkText}>Wait, not yet</Text>
+              </Pressable>
+            </View>
+          </>
         )}
       </View>
     </ScrollView>
@@ -172,10 +258,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     flexGrow: 1,
   },
+  barSpacer: {
+    height: 44,
+  },
   heading: {
     alignItems: 'center',
-    gap: 12,
-    marginTop: 8,
+    marginTop: 14,
   },
   title: {
     fontFamily: fonts.display,
@@ -281,43 +369,50 @@ const styles = StyleSheet.create({
     fontFamily: fonts.bodySemiBold,
     color: colors.ink,
   },
-  rolePicker: {
-    marginTop: 20,
-    alignItems: 'center',
+  bioNudge: {
+    alignSelf: 'center',
+    maxWidth: 330,
+    marginTop: 14,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(249, 208, 193, 0.56)',
+    borderWidth: 1,
+    borderColor: 'rgba(217, 84, 65, 0.14)',
   },
-  rolePickerLabel: {
-    fontFamily: fonts.bodySemiBold,
-    fontSize: 14,
-    lineHeight: 20,
+  bioNudgeText: {
+    fontFamily: fonts.body,
+    fontSize: 12.5,
+    lineHeight: 18,
     color: colors.inkSoft,
     textAlign: 'center',
-    marginBottom: 12,
-  },
-  roleButtons: {
-    flexDirection: 'row',
-    gap: 12,
   },
   actions: {
     marginTop: 'auto',
-    paddingTop: 20,
-    gap: 13,
+    paddingTop: 22,
+    gap: 6,
   },
-  assurance: {
-    flexDirection: 'row',
+  cue: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: colors.coral,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  link: {
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 7,
   },
-  assuranceDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: colors.sage,
+  linkPressed: {
+    opacity: 0.6,
   },
-  assuranceText: {
-    fontFamily: fonts.body,
-    fontSize: 11.5,
-    lineHeight: 17,
-    color: colors.muted,
+  linkText: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 13.5,
+    lineHeight: 19,
+    color: colors.inkSoft,
+    textDecorationLine: 'underline',
   },
 });
